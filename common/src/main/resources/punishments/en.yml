@@ -105,6 +105,7 @@ Punishments:
     checks:
       - "Interact"
       - "Aim"
+      - "KillAura"
     commands:
       - "20:40 [alert]"
       - "20:40 [log]"
