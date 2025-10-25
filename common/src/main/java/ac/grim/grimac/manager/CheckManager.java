@@ -61,6 +61,7 @@ import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.ImmutableClassToInstanceMap;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CheckManager {
@@ -257,19 +258,46 @@ public class CheckManager {
                 .put(Hitboxes.class, new Hitboxes(player)) // Hitboxes is invoked by Reach
                 .build();
 
-        allChecks = new ImmutableClassToInstanceMap.Builder<AbstractCheck>()
-                .putAll(packetChecks)
-                .putAll(positionChecks)
-                .putAll(rotationChecks)
-                .putAll(vehicleChecks)
-                .putAll(postPredictionChecks)
-                .putAll(blockPlaceChecks)
+        // Build allChecks by merging all check maps
+        // Note: KillAura appears in packetChecks, rotationChecks, and postPredictionChecks
+        // We need to add it only once to avoid duplicate key errors
+        ImmutableClassToInstanceMap.Builder<AbstractCheck> allChecksBuilder = new ImmutableClassToInstanceMap.Builder<AbstractCheck>();
+
+        for (Map.Entry<Class<? extends PacketCheck>, PacketCheck> entry : packetChecks.entrySet()) {
+            allChecksBuilder.put(castToAbstractCheck(entry.getKey()), entry.getValue());
+        }
+
+        for (Map.Entry<Class<? extends PositionCheck>, PositionCheck> entry : positionChecks.entrySet()) {
+            allChecksBuilder.put(castToAbstractCheck(entry.getKey()), entry.getValue());
+        }
+
+        for (Map.Entry<Class<? extends RotationCheck>, RotationCheck> entry : rotationChecks.entrySet()) {
+            if (!entry.getKey().equals(KillAura.class)) {
+                allChecksBuilder.put(castToAbstractCheck(entry.getKey()), entry.getValue());
+            }
+        }
+
+        allChecksBuilder.putAll(vehicleChecks);
+
+        for (Map.Entry<Class<? extends PostPredictionCheck>, PostPredictionCheck> entry : postPredictionChecks.entrySet()) {
+            if (!entry.getKey().equals(KillAura.class)) {
+                allChecksBuilder.put(castToAbstractCheck(entry.getKey()), entry.getValue());
+            }
+        }
+
+        allChecksBuilder.putAll(blockPlaceChecks)
                 .putAll(prePredictionChecks)
                 .putAll(blockBreakChecks)
-                .putAll(noneModules)
-                .build();
+                .putAll(noneModules);
+
+        allChecks = allChecksBuilder.build();
 
         init();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends AbstractCheck> Class<T> castToAbstractCheck(Class<? extends T> clazz) {
+        return (Class<T>) clazz;
     }
 
     @SuppressWarnings("unchecked")
