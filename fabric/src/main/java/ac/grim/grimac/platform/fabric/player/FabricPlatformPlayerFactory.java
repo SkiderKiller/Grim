@@ -86,7 +86,16 @@ public class FabricPlatformPlayerFactory extends AbstractPlatformPlayerFactory<S
 
     @Override
     public void replaceNativePlayer(@NotNull UUID uuid, @NotNull ServerPlayerEntity serverPlayerEntity) {
-        super.cache.getPlayer(uuid).replaceNativePlayer(serverPlayerEntity);
+        // copyFrom may run before we've cached a PlatformPlayer (or after invalidation),
+        // so tolerate missing cache entries and hydrate lazily.
+        var cached = super.cache.getPlayer(uuid);
+        if (cached != null) {
+            cached.replaceNativePlayer(serverPlayerEntity);
+            return;
+        }
+
+        // Ensure future lookups get the current native player instance.
+        super.cache.addOrGetPlayer(uuid, createPlatformPlayer(serverPlayerEntity));
     }
 
     public AbstractFabricPlatformInventory getPlatformInventory(ServerPlayerEntity serverPlayerEntity) {

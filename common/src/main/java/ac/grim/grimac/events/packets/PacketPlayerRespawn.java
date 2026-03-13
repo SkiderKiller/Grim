@@ -229,6 +229,12 @@ public class PacketPlayerRespawn extends PacketListenerAbstract {
             return !Objects.equals(respawn.getWorldName().orElse(null), player.worldName);
         }
 
+        // Some transition windows can leave player.dimensionType null briefly.
+        // Treat as world change to force safe re-init and avoid NPE.
+        if (player.dimensionType == null || respawn.getDimensionType() == null) {
+            return true;
+        }
+
         ClientVersion version = PacketEvents.getAPI().getServerManager().getVersion().toClientVersion();
         return respawn.getDimensionType().getId(version) != player.dimensionType.getId(version)
                 || !Objects.equals(respawn.getDimensionType().getName(), player.dimensionType.getName());

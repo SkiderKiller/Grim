@@ -133,7 +133,11 @@ public final class PlayerBaseTick {
 
     private static void updateInWaterStateAndDoFluidPushing(GrimPlayer player) {
         updateInWaterStateAndDoWaterCurrentPushing(player);
-        final double multiplier = player.dimensionType.isUltraWarm() ? 0.007 : 0.0023333333333333335;
+
+        // dimensionType may be briefly null during some login/respawn/teleport transitions.
+        // Fallback to non-ultrawarm behavior instead of throwing and breaking movement prediction.
+        final boolean ultraWarm = player.dimensionType != null && player.dimensionType.isUltraWarm();
+        final double multiplier = ultraWarm ? 0.007 : 0.0023333333333333335;
         // 1.15 and below clients use block collisions to check for being in lava
         if (player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_16))
             player.wasTouchingLava = updateFluidHeightAndDoFluidPushing(player, FluidTag.LAVA, multiplier);
